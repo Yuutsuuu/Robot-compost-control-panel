@@ -1,0 +1,87 @@
+.angraph-tab-container {
+  padding: 20px;
+  max-width: 1800px;
+  margin: 0 auto;
+  font-family: Arial, sans-serif;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+  color: #333;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 600px; /* <--- MAKE SURE THIS IS SET TO YOUR DESIRED HEIGHT (e.g., 400px or more) */
+  width: 100%;
+  margin-bottom: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Other styles */
+.filter-controls-container {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 30px;
+    padding: 15px;
+    background-color: #eef;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.date-filter-group,
+.timeframe-selector-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+label {
+    font-weight: bold;
+    color: #555;
+}
+
+/* You can adjust these styles for the react-datepicker input */
+input[type="date"],
+select,
+.custom-datepicker-input { /* Apply styles to the custom datepicker input */
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+    color: #333;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+input[type="date"]:focus,
+select:focus,
+.custom-datepicker-input:focus { /* Apply focus styles to the custom datepicker input */
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+
+.loading-message,
+.error-message,
+.no-data-message {
+    text-align: center;
+    padding: 20px;
+    font-size: 1.1rem;
+    color: #666;
+}
+
+.error-message {
+    color: #d9534f;
+    font-weight: bold;
+}

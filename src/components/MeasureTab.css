@@ -1,0 +1,331 @@
+/* src/components/MeasureTab.css */
+
+.control-panel-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: 'Roboto', sans-serif;
+  background-color: #f0f2f5;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+h2 {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 30px;
+  font-size: 2.2em;
+  font-weight: 700;
+}
+
+h3 {
+  color: #34495e;
+  margin-bottom: 20px;
+  font-size: 1.6em;
+  font-weight: 600;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 10px;
+}
+
+h4 {
+  color: #4a6c8e;
+  margin-bottom: 15px;
+  font-size: 1.3em;
+  font-weight: 600;
+}
+
+.control-sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+  justify-content: center;
+}
+
+.control-card {
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 25px;
+  flex: 1;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.robot-control-card {
+  max-width: 450px; /* This will now be the Composter System Overview card */
+}
+
+.sensor-config-card {
+  max-width: 700px;
+}
+
+.control-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  gap: 15px;
+}
+
+/* New style for rows that contain only an action button */
+.control-item.action-row {
+  justify-content: center; /* Center the button */
+  margin-top: 25px; /* Add some space above the button */
+}
+
+
+.control-label {
+  font-weight: 600;
+  color: #555;
+  min-width: 80px;
+}
+
+input[type="number"],
+input[type="text"],
+.text-input {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  flex-grow: 1;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+input[type="number"]:focus,
+input[type="text"]:focus,
+.text-input:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+.action-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.action-button:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+.action-button:active {
+  background-color: #004085;
+  transform: translateY(0);
+}
+
+.action-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.small-button {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
+
+.current-setting {
+  font-size: 0.9em;
+  color: #777;
+  /* Removed specific margin-left as content now varies */
+  /* margin-left: 95px; */
+  flex-grow: 1; /* Allow it to take available space */
+  text-align: right; /* Align text to the right for values */
+}
+
+
+/* Toggle Switch Styles (Pure CSS) */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.small-switch {
+  width: 40px;
+  height: 22px;
+}
+.small-switch .slider {
+    border-radius: 22px;
+}
+.small-switch .slider:before {
+    height: 18px;
+    width: 18px;
+    left: 2px;
+    bottom: 2px;
+    border-radius: 50%;
+}
+.small-switch input:checked + .slider:before {
+    transform: translateX(18px);
+}
+
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 28px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #4CAF50; /* Green for ON */
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #4CAF50;
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+/* Status Indicator */
+.status-indicator {
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-weight: 600;
+  font-size: 0.9em;
+  margin-left: 5px;
+  min-width: 50px;
+  text-align: center;
+}
+
+.status-indicator.on {
+  background-color: #e6ffe6;
+  color: #28a745;
+}
+
+.status-indicator.off {
+  background-color: #ffe6e6;
+  color: #dc3545;
+}
+
+.sensor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+  justify-items: center;
+}
+
+.sensor-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  background-color: #fdfdfd;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+  max-width: 320px;
+  width: 100%;
+}
+
+.sensor-reading {
+  font-size: 1.1em;
+  color: #555;
+  margin-bottom: 5px;
+}
+
+.sensor-reading .value {
+  font-weight: 600;
+  color: #333;
+}
+
+/* Messages */
+.loading-message,
+.error-message {
+  text-align: center;
+  padding: 20px;
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.error-message {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .control-sections {
+    flex-direction: column;
+    align-items: center;
+  }
+  .control-card {
+    width: 90%;
+    max-width: 450px;
+  }
+  .control-panel-container {
+    padding: 15px;
+  }
+  .sensor-grid {
+    grid-template-columns: 1fr;
+  }
+  .sensor-config-card {
+    max-width: 450px;
+  }
+  .sensor-card {
+    max-width: 350px;
+  }
+  .control-item.action-row {
+    margin-top: 15px; /* Adjust for smaller screens */
+  }
+}
+
+@media (max-width: 480px) {
+  .control-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .control-label {
+    min-width: auto;
+  }
+  .interval-input,
+  .text-input {
+    width: 100%;
+  }
+  .action-button {
+    width: 100%;
+  }
+  .current-setting {
+    margin-left: 0;
+    text-align: right;
+    width: 100%;
+  }
+  .sensor-card {
+    max-width: none;
+  }
+}

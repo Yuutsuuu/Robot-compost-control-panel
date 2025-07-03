@@ -1,0 +1,104 @@
+/* src/App.css */
+
+/* Basic Reset & Body Styles */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #F9FBE7; /* Soft Earth/Beige background */
+  color: #333333; /* Standard dark grey text */
+}
+
+#root {
+  display: flex;
+  /* Removed justify-content: center; from #root, as the app-container will now fill the space */
+  min-height: 100vh;
+  width: 100%; /* Ensure root takes full width to allow app-container to expand */
+}
+
+.app-container {
+  width: 100%; /* Now takes full width */
+  max-width: 100%; /* Explicitly set to 100% or remove this line entirely */
+  background-color: #ffffff; /* White content background */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header Styling */
+.app-header {
+  background-color: #004D40; /* Deep Teal/Blue for header */
+  padding: 25px 50px; /* Increased horizontal padding for full-width layout */
+  color: white;
+  text-align: center;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+}
+
+.app-header h1 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 2.5em;
+  letter-spacing: 1px;
+}
+
+/* Navigation Styling */
+.main-nav {
+  display: flex;
+  /* Changed justify-content to space-around or space-between */
+  justify-content: space-around; /* Distributes items evenly with space around them */
+  /* OR justify-content: space-between; // Pushes first and last items to the edges */
+  flex-wrap: wrap;
+  gap: 15px; /* Reduced gap slightly to allow more space for spreading */
+  margin-top: 15px; /* Add some space between title and nav */
+}
+
+.nav-link {
+  color: #B2DFDB;
+  text-decoration: none;
+  font-size: 1.15em;
+  padding: 12px 20px;
+  border-radius: 7px;
+  transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
+  font-weight: 500;
+  white-space: nowrap; /* Prevent text wrapping within the tab link */
+}
+
+.nav-link:hover {
+  background-color: #00695C;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.nav-link.active {
+  background-color: #4CAF50;
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Main Content Area */
+.app-content {
+  flex-grow: 1;
+  padding: 30px 50px; /* Increased horizontal padding for content area */
+}
+
+/* Placeholder styles for tab containers (already existing, just for completeness) */
+/* These are in your individual tab CSS files like MeasureTab.css */
+/*
+.measure-tab-container,
+.angraph-tab-container,
+.general-graph-tab-container,
+.sensor-readings-tab-container,
+.conditions-tab-container {
+  padding: 20px;
+  background-color: #F9FBE7;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-top: 20px;
+}
+*/
