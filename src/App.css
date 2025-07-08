@@ -32,7 +32,7 @@ body {
 
 /* Header Styling */
 .app-header {
-  background-color: #004D40; /* Deep Teal/Blue for header */
+  background-color: #004D40;
   padding: 25px 50px; /* Increased horizontal padding for full-width layout */
   color: white;
   text-align: center;

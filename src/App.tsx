@@ -15,7 +15,7 @@ function App() {
       <div className="app-container">
         <header className="app-header">
           {/* You can replace this with one of your new title recommendations! */}
-          <h1>Robot Compost Control Panel</h1>
+          <h1>BioBin</h1>
           <nav className="main-nav">
             <NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
               Main
@@ -38,8 +38,8 @@ function App() {
         <main className="app-content">
           <Routes>
             <Route path="/" element={<MeasureTab />} />
-            <Route path="/angraph" element={<AngraphTab />} /> {/* New Route */}
-            <Route path="/general-graph" element={<GeneralGraphTab />} /> {/* New Route */}
+            <Route path="/angraph" element={<AngraphTab />} />
+            <Route path="/general-graph" element={<GeneralGraphTab />} /> 
             <Route path="/sensor-readings" element={<SensorReadingsTab />} />
             <Route path="/conditions" element={<ConditionsTab />} />
             {/* You can add a 404/NotFound route if desired */}
