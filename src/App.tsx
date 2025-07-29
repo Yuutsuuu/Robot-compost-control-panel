@@ -5,7 +5,6 @@ import './App.css'; // Keep your main App.css for global styles
 // Import your tab components
 import MeasureTab from './components/MeasureTab';
 import AngraphTab from './components/AngraphTab'; // New import
-import GeneralGraphTab from './components/GeneralGraphTab'; // New import
 import SensorReadingsTab from './components/SensorReadingsTab';
 import ConditionsTab from './components/ConditionsTab';
 
@@ -20,15 +19,15 @@ function App() {
             <NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
               Main
             </NavLink>
+
             <NavLink to="/angraph" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-              Angraph
+              Graph
             </NavLink>
-            <NavLink to="/general-graph" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-              General Graph
-            </NavLink>
+            
             <NavLink to="/sensor-readings" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
               Sensor Readings
             </NavLink>
+
             <NavLink to="/conditions" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
               Conditions
             </NavLink>
@@ -39,7 +38,6 @@ function App() {
           <Routes>
             <Route path="/" element={<MeasureTab />} />
             <Route path="/angraph" element={<AngraphTab />} />
-            <Route path="/general-graph" element={<GeneralGraphTab />} /> 
             <Route path="/sensor-readings" element={<SensorReadingsTab />} />
             <Route path="/conditions" element={<ConditionsTab />} />
             {/* You can add a 404/NotFound route if desired */}
