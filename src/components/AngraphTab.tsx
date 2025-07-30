@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+// src/components/AngraphTab.tsx
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import './AngraphTab.css';
 
 // Import Chart.js components
@@ -18,7 +20,7 @@ import 'chartjs-adapter-date-fns';
 
 // Import react-datepicker and its CSS
 import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css'; // <--- IMPORTANT: This line imports the DatePicker's default styling
+import 'react-datepicker/dist/react-datepicker.css';
 
 ChartJS.register(
   LinearScale,
@@ -30,13 +32,11 @@ ChartJS.register(
   TimeScale
 );
 
-import mockSensorData from '../data/sensorrReadingsGPL242510-1.json';
-
 interface SensorData {
   id?: number;
-  robotid: string;
+  robotid: string; // Ensure this matches backend response
   sensorId: string;
-  timestamp: string;
+  timestamp: string; // This will be the aggregated timestamp from backend
   temperature: number;
   humidity: number;
   controlMode: string;
@@ -44,83 +44,86 @@ interface SensorData {
   powerConsumption: number | null;
 }
 
-interface TimeframeOption {
-  label: string;
-  unit: 'minute' | 'hour' | 'day';
-  stepSize: number;
-  displayFormat: string;
-}
-
-const TIME_INTERVAL_OPTIONS: TimeframeOption[] = [
-  { label: 'Every 5 Mins', unit: 'minute', stepSize: 5, displayFormat: 'HH:mm' },
-  { label: 'Every 15 Mins', unit: 'minute', stepSize: 15, displayFormat: 'HH:mm' },
-  { label: 'Every 30 Mins', unit: 'minute', stepSize: 30, displayFormat: 'HH:mm' },
-  { label: 'Every 1 Hour', unit: 'hour', stepSize: 1, displayFormat: 'MMM d, HH:mm' },
-  { label: 'Every 3 Hours', unit: 'hour', stepSize: 3, displayFormat: 'MMM d, HH:mm' },
-  { label: 'Every 6 Hours', unit: 'hour', stepSize: 6, displayFormat: 'MMM d, HH:mm' },
-  { label: 'Every 12 Hours', unit: 'hour', stepSize: 12, displayFormat: 'MMM d, HH:mm' },
-  { label: 'Every 1 Day', unit: 'day', stepSize: 1, displayFormat: 'MMM d' },
-];
+// Removed TIME_INTERVAL_OPTIONS and TimeframeOption interface as they are no longer dynamic
 
 const AngraphTab: React.FC = () => {
   const [currentSensorData, setCurrentSensorData] = useState<SensorData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // startDate and endDate remain strings for your filtering logic
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
-  const [selectedTimeframe, setSelectedTimeframe] = useState<TimeframeOption>(TIME_INTERVAL_OPTIONS[3]); // Default to "Every 1 Hour"
+  // Removed selectedTimeframe state as it's no longer dynamic
 
-  // This function formats a Date object into a 'YYYY-MM-DD' string for the input
   const formatDateForInput = (date: Date): string => {
     return date.toISOString().split('T')[0];
   };
 
-  const simulateFetchSensorData = () => {
+  // NEW: Function to fetch real sensor data from your backend for graphing
+  const fetchGraphData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
-      const data: SensorData[] = mockSensorData as SensorData[];
 
-      if (!data || data.length === 0) {
-        throw new Error("Mock data is empty or undefined. Check your JSON file content and path.");
+    if (!startDate || !endDate) {
+      console.log('Skipping fetch: Start or End Date not set.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Only send startDate and endDate, as interval is fixed on backend
+      const queryParams = new URLSearchParams({
+        startDate: startDate,
+        endDate: endDate,
+      }).toString();
+
+      const response = await fetch(`http://localhost:3000/getGraphData?${queryParams}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch graph data: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data: SensorData[] = await response.json();
+      console.log('Fetched graph data:', data);
+
+      if (data.length === 0) {
+        console.warn("No data returned from API for the selected filters.");
       }
       setCurrentSensorData(data);
-      console.log('Simulated fetch: Data loaded successfully. Total points:', data.length);
     } catch (err: any) {
-      console.error("AngraphTab: Failed to load mock sensor data:", err);
-      setError(`Failed to load mock sensor data: ${err.message || err.toString()}`);
+      console.error('Error fetching graph data:', err);
+      setError(`Failed to load graph data: ${err.message || 'Unknown error'}. Please check the server and network connection.`);
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, endDate]); // Dependencies for useCallback are now just dates
 
+  // Initial fetch and re-fetch when filters change
   useEffect(() => {
-    simulateFetchSensorData();
-  }, []);
+    fetchGraphData();
+  }, [fetchGraphData]);
 
+  // Set default start/end dates based on fetched data, if they aren't already set
   useEffect(() => {
     if (currentSensorData.length > 0 && !startDate && !endDate) {
       const timestamps = currentSensorData.map(d => new Date(d.timestamp.replace(' ', 'T')));
       const minDate = new Date(Math.min(...timestamps.map(date => date.getTime())));
       const maxDate = new Date(Math.max(...timestamps.map(date => date.getTime())));
 
-      const formattedMinDate = formatDateForInput(minDate);
-      const formattedMaxDate = formatDateForInput(maxDate);
+      setStartDate(formatDateForInput(minDate));
+      setEndDate(formatDateForInput(maxDate));
 
-      setStartDate(formattedMinDate);
-      setEndDate(formattedMaxDate);
-
-      console.log('Default Dates Set: Start:', formattedMinDate, 'End:', formattedMaxDate);
+      console.log('Default Dates Set based on data:', formatDateForInput(minDate), 'to', formatDateForInput(maxDate));
     }
   }, [currentSensorData, startDate, endDate]);
 
   const { temperatureDatasets, humidityDatasets } = useMemo(() => {
     console.log('useMemo: Recalculating datasets...');
-    console.log('useMemo inputs: currentSensorData.length=', currentSensorData.length, 'startDate=', startDate, 'endDate=', endDate);
-
     if (currentSensorData.length === 0 || !startDate || !endDate) {
       console.log('useMemo: Skipping dataset calculation (data not loaded or dates not set).');
       return { temperatureDatasets: [], humidityDatasets: [] };
@@ -129,9 +132,9 @@ const AngraphTab: React.FC = () => {
     const filterStartDateTime = new Date(startDate + 'T00:00:00');
     const filterEndDateTime = new Date(endDate + 'T23:59:59');
 
-    console.log('Filtering from:', filterStartDateTime.toISOString(), 'to:', filterEndDateTime.toISOString());
-
+    // FilteredData will be the `currentSensorData` if backend is filtering correctly
     const filteredData = currentSensorData.filter(d => {
+      // Backend should return aggregated_timestamp. Make sure to use that.
       const timestamp = new Date(d.timestamp.replace(' ', 'T'));
       return timestamp >= filterStartDateTime && timestamp <= filterEndDateTime;
     });
@@ -139,7 +142,7 @@ const AngraphTab: React.FC = () => {
     console.log('Filtered Data Length:', filteredData.length);
 
     if (filteredData.length === 0) {
-      console.warn("No data available for the selected date range.");
+      console.warn("No data available for the selected date range after local filtering.");
       return { temperatureDatasets: [], humidityDatasets: [] };
     }
 
@@ -153,7 +156,7 @@ const AngraphTab: React.FC = () => {
 
     const tempDatasets: any[] = [];
     const humDatasets: any[] = [];
-    const colors = ['#4CAF50', '#2196F3', '#FFC107', '#E91E63', '#9C27B0', '#00BCD4'];
+    const colors = ['#4CAF50', '#2196F3', '#FFC107', '#E91E63', '#9C27B0', '#00BCD4', '#FF5722', '#607D8B'];
 
     let colorIndex = 0;
 
@@ -164,11 +167,7 @@ const AngraphTab: React.FC = () => {
 
       tempDatasets.push({
         label: `${sensorId} - Temperature (°C)`,
-        data: sensorData.map(d => {
-          const isoTimestamp = d.timestamp.replace(' ', 'T');
-          const xValue = new Date(isoTimestamp);
-          return { x: xValue, y: d.temperature };
-        }),
+        data: sensorData.map(d => ({ x: new Date(d.timestamp.replace(' ', 'T')), y: d.temperature })),
         borderColor: sensorColor,
         backgroundColor: sensorColor + '40',
         tension: 0.3,
@@ -180,11 +179,7 @@ const AngraphTab: React.FC = () => {
 
       humDatasets.push({
         label: `${sensorId} - Humidity (%)`,
-        data: sensorData.map(d => {
-          const isoTimestamp = d.timestamp.replace(' ', 'T');
-          const xValue = new Date(isoTimestamp);
-          return { x: xValue, y: d.humidity };
-        }),
+        data: sensorData.map(d => ({ x: new Date(d.timestamp.replace(' ', 'T')), y: d.humidity })),
         borderColor: sensorColor,
         backgroundColor: sensorColor + '40',
         tension: 0.3,
@@ -201,17 +196,20 @@ const AngraphTab: React.FC = () => {
     return { temperatureDatasets: tempDatasets, humidityDatasets: humDatasets };
   }, [currentSensorData, startDate, endDate]);
 
-  const getDisplayFormats = (selectedUnit: 'minute' | 'hour' | 'day', selectedFormat: string) => {
-    const formats: { [key: string]: string } = {
-      minute: 'HH:mm',
-      hour: 'MMM d, HH:mm',
-      day: 'MMM d',
-      month: 'MMMM',
-      year: 'yyyy',
-    };
-    formats[selectedUnit] = selectedFormat;
-    return formats;
+  // Removed getDisplayFormats as the format is now fixed
+  // Hardcode display formats as the unit/stepSize are fixed to 5 minutes
+  const fixedDisplayFormats = {
+    millisecond: 'MMM d, HH:mm:ss.SSS',
+    second: 'MMM d, HH:mm:ss',
+    minute: 'MMM d, HH:mm', // Main format for 5-minute interval
+    hour: 'MMM d, HH:mm',
+    day: 'MMM d',
+    week: 'MMM d',
+    month: 'MMMM yyyy',
+    quarter: '[Q]Q yyyy',
+    year: 'yyyy',
   };
+
 
   const temperatureChartOptions = useMemo(() => ({
     responsive: true,
@@ -228,9 +226,9 @@ const AngraphTab: React.FC = () => {
         intersect: false,
         callbacks: {
           title: (context: any) => new Date(context[0].parsed.x).toLocaleString('en-US', {
-              year: 'numeric', month: 'short', day: 'numeric',
-              hour: '2-digit', minute: '2-digit', second: '2-digit',
-              hour12: false
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false
           }),
           label: (context: any) => {
             let label = context.dataset.label || '';
@@ -253,10 +251,10 @@ const AngraphTab: React.FC = () => {
       x: {
         type: 'time' as const,
         time: {
-          unit: selectedTimeframe.unit,
-          stepSize: selectedTimeframe.stepSize,
+          unit: 'minute',   // Hardcoded to minute
+          stepSize: 5,      // Hardcoded to 5
           tooltipFormat: 'MMM d,yyyy HH:mm:ss',
-          displayFormats: getDisplayFormats(selectedTimeframe.unit, selectedTimeframe.displayFormat),
+          displayFormats: fixedDisplayFormats, // Use fixed formats
         },
         title: { display: true, text: 'Timestamp', color: '#333' },
         ticks: {
@@ -273,7 +271,7 @@ const AngraphTab: React.FC = () => {
         min: 0,
       },
     },
-  }), [selectedTimeframe]);
+  }), []); // Empty dependency array as options are now static
 
   const humidityChartOptions = useMemo(() => ({
     responsive: true,
@@ -290,9 +288,9 @@ const AngraphTab: React.FC = () => {
         intersect: false,
         callbacks: {
           title: (context: any) => new Date(context[0].parsed.x).toLocaleString('en-US', {
-              year: 'numeric', month: 'short', day: 'numeric',
-              hour: '2-digit', minute: '2-digit', second: '2-digit',
-              hour12: false
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false
           }),
           label: (context: any) => {
             let label = context.dataset.label || '';
@@ -315,10 +313,10 @@ const AngraphTab: React.FC = () => {
       x: {
         type: 'time' as const,
         time: {
-          unit: selectedTimeframe.unit,
-          stepSize: selectedTimeframe.stepSize,
+          unit: 'minute',   // Hardcoded to minute
+          stepSize: 5,      // Hardcoded to 5
           tooltipFormat: 'MMM d,yyyy HH:mm:ss',
-          displayFormats: getDisplayFormats(selectedTimeframe.unit, selectedTimeframe.displayFormat),
+          displayFormats: fixedDisplayFormats, // Use fixed formats
         },
         title: { display: true, text: 'Timestamp', color: '#333' },
         ticks: {
@@ -336,82 +334,45 @@ const AngraphTab: React.FC = () => {
         max: 100,
       },
     },
-  }), [selectedTimeframe]);
+  }), []); // Empty dependency array as options are now static
 
 
   return (
     <div className="angraph-tab-container">
-      <h2>Historical Sensor Readings (Angraph)</h2>
+      <h2>Historical Sensor Readings (Graphs)</h2>
 
-      {loading && <p className="loading-message">Loading historical sensor data from mock file...</p>}
+      {loading && <p className="loading-message">Loading historical sensor data...</p>}
       {error && <p className="error-message">{error}</p>}
 
-      {!loading && !error && currentSensorData.length === 0 && (
-        <p className="no-data-message">No mock sensor data available. Check your JSON file and its path/content.</p>
-      )}
-
-      {/* --- Filter Controls Container --- */}
-      {!loading && !error && currentSensorData.length > 0 && (
+      {!loading && !error && (
         <div className="filter-controls-container">
           <div className="date-filter-group">
             <label htmlFor="startDate">Start Date:</label>
-            {/* START DATEPICKER */}
             <DatePicker
-              // Convert string date to Date object for DatePicker's selected prop
               selected={startDate ? new Date(startDate) : null}
-              // Convert selected Date object back to string for your state
               onChange={(date: Date | null) => setStartDate(date ? formatDateForInput(date) : '')}
-              selectsStart // Indicates this is the start date for a range
+              selectsStart
               startDate={startDate ? new Date(startDate) : null}
               endDate={endDate ? new Date(endDate) : null}
-              dateFormat="yyyy-MM-dd" // Match your desired date format
-              className="custom-datepicker-input" // Add a class for potential custom styling in CSS
+              dateFormat="yyyy-MM-dd"
+              className="custom-datepicker-input"
             />
-            {/* END DATEPICKER */}
             <label htmlFor="endDate">End Date:</label>
-            {/* START DATEPICKER */}
             <DatePicker
-              // Convert string date to Date object for DatePicker's selected prop
               selected={endDate ? new Date(endDate) : null}
-              // Convert selected Date object back to string for your state
               onChange={(date: Date | null) => setEndDate(date ? formatDateForInput(date) : '')}
-              selectsEnd // Indicates this is the end date for a range
+              selectsEnd
               startDate={startDate ? new Date(startDate) : null}
               endDate={endDate ? new Date(endDate) : null}
-              dateFormat="yyyy-MM-dd" // Match your desired date format
-              className="custom-datepicker-input" // Add a class for potential custom styling in CSS
+              dateFormat="yyyy-MM-dd"
+              className="custom-datepicker-input"
             />
-            {/* END DATEPICKER */}
           </div>
-
-          <div className="timeframe-selector-group">
-            <label htmlFor="timeframe">Interval:</label>
-            <select
-                id="timeframe"
-                value={selectedTimeframe.label}
-                onChange={(e) => {
-                    const selectedLabel = e.target.value;
-                    const newTimeframe = TIME_INTERVAL_OPTIONS.find(opt => opt.label === selectedLabel);
-                    if (newTimeframe) {
-                        setSelectedTimeframe(newTimeframe);
-                    }
-                }}
-            >
-                {TIME_INTERVAL_OPTIONS.map(option => (
-                    <option key={option.label} value={option.label}>
-                        {option.label}
-                    </option>
-                ))}
-            </select>
-          </div>
+          {/* Removed the timeframe-selector-group (interval dropdown) */}
         </div>
       )}
 
-      {/* --- Render Charts --- */}
-      {console.log('Rendering Charts? Loading:', loading, 'Error:', error, 'Temp Datasets Length:', temperatureDatasets.length, 'Hum Datasets Length:', humidityDatasets.length)}
-      {!loading && !error && (
-        temperatureDatasets.length > 0 || humidityDatasets.length > 0
-      ) ? (
+      {!loading && !error && (currentSensorData.length > 0) ? (
         <>
           <div className="chart-wrapper">
             <Line data={{ datasets: temperatureDatasets }} options={temperatureChartOptions} />
@@ -421,8 +382,10 @@ const AngraphTab: React.FC = () => {
           </div>
         </>
       ) : (
-        !loading && !error && currentSensorData.length > 0 && (
-          <p className="no-data-message">No sensor data found for the selected date range. Try adjusting your filters.</p>
+        !loading && !error && (
+          <p className="no-data-message">
+            {currentSensorData.length === 0 ? "No sensor data available. Filters the dates to view or check the backend connection." : "No sensor data found for the selected date range. Try adjusting your filters."}
+          </p>
         )
       )}
     </div>
