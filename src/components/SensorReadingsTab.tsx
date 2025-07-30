@@ -1,198 +1,189 @@
-// src/components/MeasureTab.tsx (Updated with detailed phase logic)
+// src/components/SensorReadingsTab.tsx
 
 import React, { useState, useEffect } from 'react';
-import './MeasureTab.css'; // Import the CSS file
+import './SensorReadingsTab.css';
 
-// Mock data for demonstration purposes
-interface SensorData {
+// Define an interface for the sensor data structure
+interface SensorReading {
   id: number;
   robotId: string;
   sensorId: string;
-  timestamp: string;
-  temperature: number;
-  humidity: number;
-  controlMode: string; // 'manual' or 'timer'
-  motorInterval: number; // in seconds
-}
-
-interface RobotControl {
-  robotId: string;
-  isPowered: boolean; // Still conceptual for overall system status
+  timestamp: string; // Assuming API always sends a string, even if empty.
+  temperature: number | null; // Changed to allow null
+  humidity: number | null;   // Changed to allow null
   controlMode: string;
-  interval: number;
+  motorInterval: number | null; // Changed to allow null
+  powerconsumption: number | null; // Changed to allow null
+  compostPhase: string;
 }
 
-const mockSensors: SensorData[] = [
-  { id: 1, robotId: 'Rpi__1', sensorId: 'Sensor__1', timestamp: '2024-01-01 10:00:00', temperature: 25.1, humidity: 60.5, controlMode: 'timer', motorInterval: 10 },
-  { id: 2, robotId: 'Rpi__1', sensorId: 'Sensor__2', timestamp: '2024-01-01 10:00:00', temperature: 24.8, humidity: 61.2, controlMode: 'manual', motorInterval: 0 },
-  { id: 3, robotId: 'Rpi__1', sensorId: 'Sensor__3', timestamp: '2024-01-01 10:00:00', temperature: 25.3, humidity: 59.9, controlMode: 'timer', motorInterval: 15 },
-  { id: 4, robotId: 'Rpi__1', sensorId: 'Sensor__4', timestamp: '2024-01-01 10:00:00', temperature: 24.9, humidity: 60.8, controlMode: 'manual', motorInterval: 0 },
-];
+// Function to format UTC timestamps to JST
+const formatToJST = (utcDateStr: string): string => {
+  // Add a check to ensure utcDateStr is a valid string before creating a Date object
+  if (!utcDateStr || typeof utcDateStr !== 'string') {
+    return 'Invalid Timestamp'; // Return a placeholder if the timestamp is not valid
+  }
 
-const MeasureTab: React.FC = () => {
-  const [sensors, setSensors] = useState<SensorData[]>(mockSensors);
-  const [systemOnline, setSystemOnline] = useState<boolean>(true); // New state for system online status
-  const [nextMixTime, setNextMixTime] = useState<string>(''); // New state for next mix time
-  const [robotControl, setRobotControl] = useState<RobotControl>({ // Kept for sensor status display
-    robotId: 'Rpi__1',
-    isPowered: true,
-    controlMode: 'timer',
-    interval: 10 // Default motor interval
+  const date = new Date(utcDateStr);
+
+  // Check if the Date object is valid (e.g., new Date('invalid string') results in Invalid Date)
+  if (isNaN(date.getTime())) {
+    return 'Invalid Timestamp'; // Handle cases where the string isn't a valid date format
+  }
+
+  return date.toLocaleString('en-US', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: 'long', // "July"
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZoneName: 'short' // "JST"
   });
-  // State for motor status and compost phase
-  const [motorStatus, setMotorStatus] = useState<'Stopped' | 'Rotating'>('Stopped');
-  const [compostPhase, setCompostPhase] = useState('Inactive');
+};
 
-  useEffect(() => {
-    // Simulate real-time updates (e.g., fetching new sensor data every few seconds)
-    const sensorInterval = setInterval(() => {
-      setSensors(prevSensors =>
-        prevSensors.map(sensor => ({
-          ...sensor,
-          temperature: parseFloat((sensor.temperature + (Math.random() * 5 - 2.5)).toFixed(1)), // Adjusted range for more phase changes
-          humidity: parseFloat((sensor.humidity + (Math.random() * 1.0 - 0.5)).toFixed(1)),
-          timestamp: new Date().toLocaleString(),
-        }))
-      );
-    }, 5000); // Update every 5 seconds
+const SensorReadingsTab: React.FC = () => {
+  const [readings, setReadings] = useState<SensorReading[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  // State for selected number of rows, default to 100
+  const [rowsPerPage, setRowsPerPage] = useState<number>(100);
 
-    // Simulate system online status (could be real ping in future)
-    const systemStatusInterval = setInterval(() => {
-      setSystemOnline(Math.random() > 0.1); // 90% chance of being online
-    }, 10000); // Check status every 10 seconds
+  // Fetch sensor data from API
+  // This function now takes the state setters and the limit as arguments
+  const fetchSensorData = async (
+    limit: number, // Passed from rowsPerPage state
+    setReadings: React.Dispatch<React.SetStateAction<SensorReading[]>>,
+    setLoading: React.Dispatch<React.SetStateAction<boolean>>,
+    setError: React.Dispatch<React.SetStateAction<string | null>>
+  ) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // MODIFIED URL: Include the 'limit' query parameter
+      // IMPORTANT: Ensure your backend uses this 'limit' parameter in its SQL query.
+      const response = await fetch(`http://localhost:3000/getSensorData?limit=${limit}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
 
-    // Calculate and update next mix time
-    const updateNextMixTime = () => {
-      const now = new Date();
-      let nextHour = new Date(now);
-      nextHour.setHours(now.getHours() + 1);
-      nextHour.setMinutes(0);
-      nextHour.setSeconds(0);
-      nextHour.setMilliseconds(0);
-      setNextMixTime(nextHour.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    };
-
-    updateNextMixTime(); // Initial set
-    const mixTimeInterval = setInterval(updateNextMixTime, 60 * 1000); // Update every minute
-
-    // Simulate motor automation (30 seconds every 1 hour)
-    const motorAutomationInterval = setInterval(() => {
-        // Check if the control mode is 'timer' to trigger automation
-        if (robotControl.controlMode === 'timer') {
-            console.log('Automated mix triggered!');
-            setMotorStatus('Rotating');
-            // Stop the motor after 30 seconds
-            setTimeout(() => {
-                setMotorStatus('Stopped');
-            }, 30000);
-        }
-    }, 3600000); // Corrected to 1 hour (3,600,000 milliseconds)
-
-    // NEW LOGIC: Simulate compost phase based on detailed temperature ranges
-    const phaseSimulationInterval = setInterval(() => {
-      // Use the temperature of the first sensor for simplicity
-      const currentTemp = sensors[0]?.temperature || 25; 
-      
-      // Implement the phase logic based on your provided temperature ranges
-      if (currentTemp >= 45 && currentTemp <= 70) {
-        setCompostPhase('Thermophilic Phase');
-      } else if (currentTemp >= 10 && currentTemp < 45) {
-        setCompostPhase('Mesophilic Phase');
-      } else if (currentTemp < 10) {
-        setCompostPhase('Psychrophilic Phase');
-      } else if (currentTemp > 70) {
-        setCompostPhase('Overheating Warning!'); // Added a state for temps > 70
-      } else {
-        setCompostPhase('Inactive');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch sensor data: ${response.status} ${response.statusText} - ${errorText}`);
       }
-    }, 1000); // Update phase every second based on simulated temp
 
-    return () => {
-      clearInterval(sensorInterval);
-      clearInterval(systemStatusInterval);
-      clearInterval(mixTimeInterval);
-      clearInterval(motorAutomationInterval); // Clean up new intervals
-      clearInterval(phaseSimulationInterval); // Clean up new intervals
-    };
-  }, [sensors, robotControl.controlMode]); // Add dependencies to re-run effect on state change
+      const data: SensorReading[] = await response.json();
+      console.log('Fetched sensor data:', data);
 
-  // Handler for the notifications button
-  const handleViewNotifications = () => {
-      alert(`Current Compost Status:\nPhase: ${compostPhase}\nTemperature: ${sensors[0]?.temperature}°C\nHumidity: ${sensors[0]?.humidity}%`);
-      console.log('This button will eventually fetch notifications via MQTT/SNS.');
+      setReadings(data);
+      setLoading(false);
+    } catch (error: any) {
+      console.error('Error fetching sensor data:', error);
+      setError(`Failed to load sensor data: ${error.message || 'Unknown error'}. Please check the server and network connection.`);
+      setLoading(false);
+    }
   };
 
+  // useEffect hook to manage the data fetching lifecycle
+  useEffect(() => {
+    // 1. Initial Data Fetch:
+    // Call the fetch function with the current rowsPerPage limit.
+    fetchSensorData(rowsPerPage, setReadings, setLoading, setError);
+
+    // 2. Periodic Data Fetch (removed for historical data, as requested by initial problem)
+    // For historical data, you typically fetch once or on filter change.
+    // If you need periodic updates for new historical entries, you'd add this back,
+    // but consider performance with 130k entries.
+    // The previous flickering was due to this.
+    // If you add this back, consider smart updates (append only, or virtualized list).
+    // const fetchInterval = setInterval(() => {
+    //   fetchSensorData(rowsPerPage, setReadings, setLoading, setError);
+    // }, 5000);
+
+    // 3. Cleanup Function:
+    // This function runs when the component unmounts.
+    // If you uncommented setInterval above, you would re-add: return () => clearInterval(fetchInterval);
+    return () => {
+      // No interval to clear if it's commented out
+    };
+  }, [rowsPerPage]); // MODIFIED DEPENDENCY ARRAY: Re-run effect when rowsPerPage changes
+
+  if (loading) {
+    return <div className="sensor-readings-container">Loading historical sensor data...</div>;
+  }
+
+  if (error) {
+    return <div className="sensor-readings-container error-message">{error}</div>;
+  }
+
   return (
-    <div className="control-panel-container">
-      <h2>Robot & Sensor Control Panel</h2>
+    <div className="sensor-readings-container">
+      <h2>Sensor Readings</h2>
 
-      <div className="control-sections">
-        {/* Composter System Overview Card */}
-        <div className="control-card robot-control-card">
-          <h3>Composter System Overview</h3>
-          <div className="control-item">
-            <label className="control-label">System Status:</label>
-            <span className={`status-indicator ${systemOnline ? 'on' : 'off'}`}>
-              {systemOnline ? 'Online' : 'Offline'}
-            </span>
-          </div>
-
-          <div className="control-item">
-            <label className="control-label">Next Mix:</label>
-            <span className="current-setting">{nextMixTime}</span>
-          </div>
-
-          <div className="control-item">
-            <label className="control-label">Automation:</label>
-            <span className="current-setting">Every 60 minutes for 30s</span>
-          </div>
-
-          {/* Display for the motor status */}
-          <div className="control-item">
-            <label className="control-label">Motor Status:</label>
-            <span className={`motor-status-display ${motorStatus.toLowerCase()}`}>
-                {motorStatus}
-            </span>
-          </div>
-          
-          {/* Display for the compost phase */}
-          <div className="control-item">
-              <label className="control-label">Compost Phase:</label>
-              <span className="compost-phase-display">{compostPhase}</span>
-          </div>
-
-          {/* NEW BUTTON: Trigger notifications */}
-          <div className="button-container">
-            <button className="trigger-button" onClick={handleViewNotifications}>View Notifications</button>
-          </div>
-        </div>
-
-        {/* Sensor Configuration Card */}
-        <div className="control-card sensor-config-card">
-          <h3>Sensor Configuration</h3>
-          <div className="sensor-grid">
-            {sensors.map((sensor) => (
-              <div key={sensor.id} className="sensor-card">
-                <h4>{sensor.sensorId}</h4>
-                <div className="control-item">
-                  <label className="control-label">Status:</label>
-                  <label className="switch small-switch">
-                    <input type="checkbox" checked={systemOnline} readOnly /> {/* Linked to systemOnline status */}
-                    <span className="slider round"></span>
-                  </label>
-                  <span className={`status-indicator ${systemOnline ? 'on' : 'off'}`}>
-                    {systemOnline ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-                <p className="sensor-reading">Temperature: <span className="value">{sensor.temperature}°C</span></p>
-                <p className="sensor-reading">Humidity: <span className="value">{sensor.humidity}%</span></p>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* NEW DROPDOWN MENU FOR ROWS PER PAGE */}
+      <div style={{ marginBottom: '15px', textAlign: 'right' }}>
+        <label htmlFor="rows-per-page">Rows per page: </label>
+        <select
+          id="rows-per-page"
+          value={rowsPerPage}
+          onChange={(e) => setRowsPerPage(Number(e.target.value))}
+          style={{ padding: '8px', borderRadius: '5px', border: '1px solid #ccc' }}
+        >
+          <option value={10}>10</option>
+          <option value={50}>50</option>
+          <option value={100}>100</option>
+          <option value={200}>200</option>
+          <option value={300}>300</option>
+          <option value={400}>400</option>
+          <option value={500}>500</option>
+          <option value={1000}>1000</option>
+        </select>
       </div>
+
+      {readings.length === 0 ? (
+        <p>No sensor readings available.</p>
+      ) : (
+        <div className="table-scroll-wrapper">
+          <table className="sensor-readings-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Robot ID</th>
+                <th>Sensor ID</th>
+                <th>Timestamp</th>
+                <th>Temperature (°C)</th>
+                <th>Humidity (%)</th>
+                <th>Power Consumption (W)</th>
+                <th>Compost Phase</th>
+                <th>Control Mode</th>
+                <th>Motor Interval (s)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {readings.map((reading) => (
+                // It's good practice to ensure 'key' is a stable, unique identifier.
+                // Assuming reading.id is unique and stable.
+                <tr key={reading.id}>
+                  <td>{reading.id}</td>
+                  <td>{reading.robotId}</td>
+                  <td>{reading.sensorId}</td>
+                  <td>{formatToJST(reading.timestamp)}</td>
+                  <td>{(reading.temperature ?? 0).toFixed(1)}</td>
+                  <td>{(reading.humidity ?? 0).toFixed(1)}</td>
+                  <td>{(reading.powerconsumption ?? 0).toFixed(1)}</td>
+                  <td>{reading.compostPhase}</td>
+                  <td>{reading.controlMode}</td>
+                  <td>{(reading.motorInterval ?? 0).toFixed(1)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
 
-export default MeasureTab;
+export default SensorReadingsTab;
